@@ -79,7 +79,7 @@ for f in filter(fname -> endswith(fname, ".txt"), readdir(src))
         if length(pieces) < 3
             @warn("Couldn't parse $(ln)")
         else
-            push!(corpuslines, string(urnbase, books[pieces[1]], ".", version[f], ":", pieces[2], "|", join(pieces[3:end], " ")))
+            push!(corpuslines, string(urnbase, books[pieces[1]], ".", version[f], ":", replace(pieces[2], ":" => "."), "|", join(pieces[3:end], " ")))
         end
     end
     println("Read $(f).")
