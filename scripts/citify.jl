@@ -33,16 +33,32 @@ books = Dict([
     ("JOB", "job"),
     ("SOL", "songs"),
     ("RUT", "ruth"),
-    ("Lam", "lamentations"),
-    ("LAM", "ecclesiastes"),
+    ("LAM", "lamentations"),
+    ("ECC", "ecclesiastes"),
     ("EST", "esther"),
     ("DAN", "daniel"),
     ("EZR", "ezra"),
     ("NEH", "nehemiah"),
     ("1CH", "chronicles2"),
-    ("2CH", "chronicles2")
+    ("2CH", "chronicles2"),
 
-
+    ("TOB", "tobit"),
+    ("JDT", "judith"),
+    ("ESG","esther2"),
+    ("WIS","wisdom"),
+    ("SIR","sirach"),
+    ("BAR","baruch"),
+    ("EPJ","epistlejeremy"),
+    ("SUS","susanna"),
+    ("BEL","bel"),
+    ("1MA","maccabees1"),
+    ("2MA","maccabees2"),
+    ("1ES","esdras1"),
+    ("PRM","manasseh"),
+    ("3MA","maccabees3"),
+    ("4MA","maccabees4"),
+    ("DNG","daniel2")
+    
     ]
 )
 
@@ -58,7 +74,7 @@ for f in filter(fname -> endswith(fname, ".txt"), readdir(src))
         if length(pieces) < 3
             @warn("Couldn't parse $(ln)")
         else
-            push!(corpuslines, string(urnbase, pieces[1], ".omar:", pieces[2], "|", join(pieces[3:end])))
+            push!(corpuslines, string(urnbase, books[pieces[1]], ".omar:", pieces[2], "|", join(pieces[3:end])))
         end
     end
     println("Read $(f).")
@@ -67,8 +83,6 @@ end
 open(joinpath(pwd(), "corpus", "compnov.cex"), "w") do io
     write(io, "#!ctsdata\n" * join(corpuslines, "\n"))
 end
-
-
 
 
 
