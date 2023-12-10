@@ -1,44 +1,44 @@
-# Map ebibles projects abbrevations to CITE2 work names:
+# Map ebibles project's abbrevations to CITE2 work names:
 books = Dict([
-    ("Gen", "genesis"),
-    ("Ex", "exodus"),
-    ("Lev", "leviticus"),
-    ("Num", "numbers"),
+    ("GEN", "genesis"),
+    ("EXO", "exodus"),
+    ("LEV", "leviticus"),
+    ("NUM", "numbers"),
     ("DEU", "deuteronomy"),
-    ("Josh", "joshua"),
-    ("Judg", "judges"),
+    ("JOS", "joshua"),
+    ("JDG", "judges"),
     ("1SA", "samuel1"),
     ("2SA", "samuel2"),
     ("1KI", "kings1"),
     ("2KI", "kings2"),
-    ("Isa", "isaiah"),
-    ("Jer", "jeremiah"),
-    ("Ezek", "ezekiel"),
+    ("ISA", "isaiah"),
+    ("JER", "jeremiah"),
+    ("EZE", "ezekiel"),
 
-    ("Hos", "hosea"),
-    ("Joel", "joel"),
+    ("HOS", "hosea"),
+    ("JOE", "joel"),
     ("AMO", "amos"),
-    ("Ob", "obadiah"),
-    ("Jon", "jonah"),
-    ("Mic", "micah"),
-    ("Nah", "nahum"),
-    ("Hab", "habakkuk"),
+    ("OBA", "obadiah"),
+    ("JON", "jonah"),
+    ("MIC", "micah"),
+    ("NAH", "nahum"),
+    ("HAB", "habakkuk"),
     ("ZEP", "zephaniah"),
-    ("Hag", "haggai"),
-    ("Zech", "zechariah"),
-    ("Mal", "malachi"),
+    ("HAG", "haggai"),
+    ("ZEC", "zechariah"),
+    ("MAL", "malachi"),
 
-    ("Ps", "psalms"),
-    ("Prov", "proverbs"),
-    ("Job", "job"),
-    ("Song", "songs"),
-    ("Ruth", "ruth"),
+    ("PSA", "psalms"),
+    ("PRO", "proverbs"),
+    ("JOB", "job"),
+    ("SOL", "songs"),
+    ("RUT", "ruth"),
     ("Lam", "lamentations"),
-    ("Eccl", "ecclesiastes"),
-    ("Esth", "esther"),
+    ("LAM", "ecclesiastes"),
+    ("EST", "esther"),
     ("DAN", "daniel"),
-    ("Ezra", "ezra"),
-    ("Neh", "nehemiah"),
+    ("EZR", "ezra"),
+    ("NEH", "nehemiah"),
     ("1CH", "chronicles2"),
     ("2CH", "chronicles2")
 
@@ -46,6 +46,27 @@ books = Dict([
     ]
 )
 
+urnbase = "urn:cts:compnov:tanach."
+
+src = joinpath(pwd(), "src")
+corpuslines = []
+for f in filter(fname -> endswith(fname, ".txt"), readdir(src))
+    
+    srclines = readlines(joinpath(src,f))
+    map(srclines) do ln
+        pieces = split(ln, r"[ ]+")
+        if length(pieces) < 3
+            @warn("Couldn't parse $(ln)")
+        else
+            push!(corpuslines, string(urnbase, pieces[1], ".omar:", pieces[2], "|", join(pieces[3:end])))
+        end
+    end
+    println("Read $(f).")
+end
+
+open(joinpath(pwd(), "corpus", "compnov.cex"), "w") do io
+    write(io, "#!ctsdata\n" * join(corpuslines, "\n"))
+end
 
 
 
@@ -55,33 +76,7 @@ books = Dict([
 
 
 
-ECC
-EST
-EXO
-EZE
-EZR
-GEN
-HAB
-HAG
-HOS
-ISA
-JDG
-JER
-JOB
-JOE
-JON
-JOS
-LAM
-LEV
-MAL
-MIC
-NAH
-NEH
-NUM
-OBA
-PRO
-PSA
-RUT
-SOL
-ZEC
+
+
+
 
