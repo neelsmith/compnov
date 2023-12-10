@@ -4,14 +4,35 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ b9a2cf5a-5150-4d1d-9000-aa5d387de4a9
 begin
 	using CitableBase, CitableText, CitableCorpus
+
+	using PlutoUI
 	md"""*Unhide this cell to see the Julia environment*."""
 end
 
 # ╔═╡ 8aa3f40e-9788-11ee-3a91-79a4e7013883
 md"""# *Complutensia nova*: browser"""
+
+# ╔═╡ 6d716b0c-e5ec-4b23-870e-c6e0068fd711
+md"""#### Masoretic text"""
+
+# ╔═╡ 79a73c3f-a38f-4e0d-b553-57f1756041e3
+md"""#### Septuagint"""
+
+# ╔═╡ 34e4e181-7429-421d-aabf-4cf015e826d4
+md"""#### Vulgate"""
 
 # ╔═╡ 9a30c4f4-2eb2-47c9-88f0-13d3849825d1
 html"""
@@ -22,11 +43,100 @@ html"""
 # ╔═╡ 0f48aa88-396b-4f12-97d8-030ab1d3c65c
 md"""---"""
 
+# ╔═╡ 194b20a2-c957-41f1-9b4f-90fb632dd109
+md"""> **Format text**"""
+
+# ╔═╡ 800e41bb-383e-4518-bf58-bc5d9cb5c8ad
+function formatpsgs(psglist)
+	mdoutput = map(psglist) do psg
+		string("`", passagecomponent(psg.urn), "` ", psg.text)
+	end
+	join(mdoutput, "\n\n") 
+end
+
+# ╔═╡ 4a918480-ef08-44cd-9bf0-a9fbe05e2b7d
+md"""> **Parsers**"""
+
+# ╔═╡ 8793e875-1bb7-45d3-82b0-88530c2f1e25
+ksrc = "http://shot.holycross.edu/morphology/literarygreek-current.csv"
+
+# ╔═╡ aeacca23-8aab-4171-af0f-23ecaa9c3e6f
+md"""> **Load and organize corpus**"""
+
+# ╔═╡ 507fd0a1-f2c5-4d30-b38c-aff077be9b45
+md"""*Use local file*: $(@bind uselocal CheckBox())"""
+
 # ╔═╡ 90a7deee-89e6-432a-bb7f-c51a8a44625f
-src = "https://github.com/neelsmith/compnov/raw/main/corpus/compnov.cex"
+fsrc = joinpath(pwd() |> dirname, "corpus", "compnov.cex") 
+
+# ╔═╡ 9ecc644e-23cd-4b62-a559-a7b660242f04
+usrc = "https://github.com/neelsmith/compnov/raw/main/corpus/compnov.cex"
 
 # ╔═╡ 7fdc53eb-5cc0-4246-b5b4-947add2a46e7
-c = fromcex(src, CitableTextCorpus, UrlReader)
+c = uselocal ? fromcex(fsrc, CitableTextCorpus, FileReader) : fromcex(usrc, CitableTextCorpus, UrlReader)
+
+# ╔═╡ 8d20d801-016e-4e0b-b21d-1e889035046c
+versions = map(c.passages) do psg
+	versionid(psg.urn)
+end |> unique
+
+# ╔═╡ 9a2e7349-8d60-47d3-94fb-cddd456b65e6
+masoretic = filter(psg -> versionid(psg.urn) == "masoretic", c.passages)
+
+# ╔═╡ e6152820-d1ef-4e75-bcec-0a83dab69234
+septuagint = filter(psg -> versionid(psg.urn) == "septuagint", c.passages)
+
+# ╔═╡ fb567b2b-dfbe-407c-aaa5-cc1c773c0265
+vulgate = filter(psg -> versionid(psg.urn) == "vulgate", c.passages)
+
+# ╔═╡ 96b3b1d6-2e39-47de-9cd7-085cdaa2cd0f
+books = map(c.passages) do psg
+	workid(psg.urn)
+end |> unique
+
+# ╔═╡ e2f41cf6-8d6c-4b2a-bc05-207f2e801510
+md"""*Book*: $(@bind bk Select(map(b -> titlecase(b), books)))"""
+
+# ╔═╡ 36b5a654-1656-433d-8161-279ac5058a12
+"""Compose a menu of chapters for the specified book."""
+function chaptermenu(corp, bookfilter)
+	bookcontent = filter(p -> workid(p.urn) == lowercase(bookfilter), corp.passages)
+	map(psg -> passagecomponent(collapsePassageBy(psg.urn, 1)), bookcontent) |> unique
+end
+
+# ╔═╡ 39ef7f67-349d-4bd9-8567-4b4267790089
+md"""*Chapter:* $(@bind chap Select(chaptermenu(c, bk)))"""
+
+# ╔═╡ a0439fbb-db35-4b46-91b9-281f72fdae75
+"""Compose a menu of verses for the specified book."""
+function versemenu(corp, bookfilter, chapterfilter)
+	bookcontent = filter(p -> workid(p.urn) == lowercase(bookfilter), corp.passages)
+	chapcontent = filter(bookcontent) do psg
+		startswith(passagecomponent(psg.urn), string(chapterfilter, "."))
+	end
+	map(psg -> passagecomponent(psg.urn), chapcontent) 
+end
+
+# ╔═╡ 60aed024-45a7-4fd8-a427-776adbf2faa6
+md"""*Verse:* $(@bind vrs Select(versemenu(c, bk, chap)))"""
+
+# ╔═╡ 1a29e503-5ce8-41b3-b242-e94a88c3315a
+filter(masoretic) do psg
+	 workid(psg.urn) == lowercase(bk) && passagecomponent(psg.urn) == vrs
+end |> formatpsgs |> Markdown.parse
+
+# ╔═╡ af81e223-8265-48e5-80db-c70f0f279f5c
+filter(septuagint) do psg
+	 workid(psg.urn) == lowercase(bk) && passagecomponent(psg.urn) == vrs
+end |> formatpsgs |> Markdown.parse
+
+# ╔═╡ ce54bedb-2b09-45c0-8702-e8828e03f3ec
+filter(vulgate) do psg
+	 workid(psg.urn) == lowercase(bk) && passagecomponent(psg.urn) == vrs
+end |> formatpsgs |> Markdown.parse
+
+# ╔═╡ 31c436fd-f0bf-424d-bd1f-9302c02a1a37
+versemenu(c, bk, "7")
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -34,11 +144,13 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 CitableBase = "d6f014bd-995c-41bd-9893-703339864534"
 CitableCorpus = "cf5ac11a-93ef-4a1a-97a3-f6af101603b5"
 CitableText = "41e66566-473b-49d4-85b7-da83b66615d8"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 CitableBase = "~10.3.1"
 CitableCorpus = "~0.13.5"
 CitableText = "~0.16.1"
+PlutoUI = "~0.7.54"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -47,12 +159,18 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.4"
 manifest_format = "2.0"
-project_hash = "238d75d5dc8cdad8c0ceafb8b983f28f9bcc3732"
+project_hash = "d5067306fae96470812d9f65a86a9447d8078965"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
 uuid = "a4c015fc-c6ff-483c-b24f-f7ea428134e9"
 version = "0.0.1"
+
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "793501dcd3fa7ce8d375a2c878dca2296232686e"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.2.2"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "faa260e4cb5aba097a73fab382dd4b5819d8ec8c"
@@ -109,6 +227,12 @@ deps = ["TranscodingStreams", "Zlib_jll"]
 git-tree-sha1 = "cd67fc487743b2f0fd4380d4cbd3a24660d0eec8"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.7.3"
+
+[[deps.ColorTypes]]
+deps = ["FixedPointNumbers", "Random"]
+git-tree-sha1 = "eb7f0f8307f71fac7c606984ea5fb2817275d6e4"
+uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
+version = "0.11.4"
 
 [[deps.Compat]]
 deps = ["UUIDs"]
@@ -192,6 +316,12 @@ version = "0.9.21"
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
+[[deps.FixedPointNumbers]]
+deps = ["Statistics"]
+git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
+uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
+version = "0.8.4"
+
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
@@ -213,6 +343,18 @@ deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapp
 git-tree-sha1 = "abbbb9ec3afd783a7cbd82ef01dcd088ea051398"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "1.10.1"
+
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.4"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.5"
 
 [[deps.IOCapture]]
 deps = ["Logging", "Random"]
@@ -293,6 +435,11 @@ git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.0.3"
 
+[[deps.MIMEs]]
+git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
+uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+version = "0.1.4"
+
 [[deps.Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
@@ -363,6 +510,12 @@ deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.9.2"
 
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
+git-tree-sha1 = "bd7c69c7f7173097e7b5e1be07cee2b8b7447f51"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.54"
+
 [[deps.PooledArrays]]
 deps = ["DataAPI", "Future"]
 git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
@@ -393,6 +546,11 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 deps = ["SHA", "Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
+[[deps.Reexport]]
+git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
+uuid = "189a3867-3050-52da-a836-e630ba90ab69"
+version = "1.2.2"
+
 [[deps.RegistryInstances]]
 deps = ["LazilyInitializedFields", "Pkg", "TOML", "Tar"]
 git-tree-sha1 = "ffd19052caf598b8653b99404058fce14828be51"
@@ -419,6 +577,20 @@ version = "1.1.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
+
+[[deps.SparseArrays]]
+deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
+uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
+[[deps.Statistics]]
+deps = ["LinearAlgebra", "SparseArrays"]
+uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+version = "1.9.0"
+
+[[deps.SuiteSparse_jll]]
+deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version = "5.10.1+6"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -460,6 +632,11 @@ weakdeps = ["Random", "Test"]
 
     [deps.TranscodingStreams.extensions]
     TestExt = ["Test", "Random"]
+
+[[deps.Tricks]]
+git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.8"
 
 [[deps.URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
@@ -506,11 +683,35 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═b9a2cf5a-5150-4d1d-9000-aa5d387de4a9
+# ╟─b9a2cf5a-5150-4d1d-9000-aa5d387de4a9
 # ╟─8aa3f40e-9788-11ee-3a91-79a4e7013883
+# ╟─e2f41cf6-8d6c-4b2a-bc05-207f2e801510
+# ╟─39ef7f67-349d-4bd9-8567-4b4267790089
+# ╟─60aed024-45a7-4fd8-a427-776adbf2faa6
+# ╟─6d716b0c-e5ec-4b23-870e-c6e0068fd711
+# ╟─1a29e503-5ce8-41b3-b242-e94a88c3315a
+# ╟─79a73c3f-a38f-4e0d-b553-57f1756041e3
+# ╟─af81e223-8265-48e5-80db-c70f0f279f5c
+# ╟─34e4e181-7429-421d-aabf-4cf015e826d4
+# ╟─ce54bedb-2b09-45c0-8702-e8828e03f3ec
 # ╟─9a30c4f4-2eb2-47c9-88f0-13d3849825d1
 # ╟─0f48aa88-396b-4f12-97d8-030ab1d3c65c
-# ╠═90a7deee-89e6-432a-bb7f-c51a8a44625f
-# ╠═7fdc53eb-5cc0-4246-b5b4-947add2a46e7
+# ╟─194b20a2-c957-41f1-9b4f-90fb632dd109
+# ╟─800e41bb-383e-4518-bf58-bc5d9cb5c8ad
+# ╟─4a918480-ef08-44cd-9bf0-a9fbe05e2b7d
+# ╟─8793e875-1bb7-45d3-82b0-88530c2f1e25
+# ╟─aeacca23-8aab-4171-af0f-23ecaa9c3e6f
+# ╟─507fd0a1-f2c5-4d30-b38c-aff077be9b45
+# ╟─90a7deee-89e6-432a-bb7f-c51a8a44625f
+# ╟─9ecc644e-23cd-4b62-a559-a7b660242f04
+# ╟─7fdc53eb-5cc0-4246-b5b4-947add2a46e7
+# ╟─8d20d801-016e-4e0b-b21d-1e889035046c
+# ╠═9a2e7349-8d60-47d3-94fb-cddd456b65e6
+# ╠═e6152820-d1ef-4e75-bcec-0a83dab69234
+# ╠═fb567b2b-dfbe-407c-aaa5-cc1c773c0265
+# ╟─96b3b1d6-2e39-47de-9cd7-085cdaa2cd0f
+# ╟─36b5a654-1656-433d-8161-279ac5058a12
+# ╠═31c436fd-f0bf-424d-bd1f-9302c02a1a37
+# ╠═a0439fbb-db35-4b46-91b9-281f72fdae75
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
