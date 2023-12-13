@@ -1,4 +1,4 @@
-# *Biblioa complutensis nova*: a digital polyglot Bible
+# *Biblia complutensis nova*: a digital polyglot Bible
 
 Contents: 
 
