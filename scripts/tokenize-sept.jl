@@ -26,3 +26,5 @@ using StatsBase
 using OrderedCollections
 freqs = countmap(tknstrings) |> OrderedDict
 sorted = sort(freqs, byvalue=true, rev=true)
+
+vocab = keys(sorted) |> collect
