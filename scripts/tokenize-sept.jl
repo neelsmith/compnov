@@ -3,6 +3,7 @@ repo = pwd()
 
 using CitableBase, CitableCorpus, CitableText
 using Orthography, PolytonicGreek, BiblicalHebrew
+using Kanones
 using StatsBase, OrderedCollections
 
 srcfile = joinpath(repo,"corpus", "compnov.cex")
@@ -39,7 +40,7 @@ vulgate = filter(corpus.passages) do psg
     versionid(psg.urn) == "vulgate"
 end |> CitableTextCorpus
 
-septfreqs = vocabfreqs(sept,literaryGreek())
+septfreqs = vocabfreqs(sept,literaryGreek(), Kanones.knormal)
 
 tanachfreqs = vocabfreqs(tanach,HebrewOrthography(), BiblicalHebrew.rm_accents)
 
