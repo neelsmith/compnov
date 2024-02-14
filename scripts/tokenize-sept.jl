@@ -28,3 +28,7 @@ freqs = countmap(tknstrings) |> OrderedDict
 sorted = sort(freqs, byvalue=true, rev=true)
 
 vocab = keys(sorted) |> collect
+
+open("septuagint-vocab.txt","w") do io
+    write(io, join(vocab,"\n"))
+end
