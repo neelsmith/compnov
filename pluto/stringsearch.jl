@@ -29,8 +29,51 @@ end
 # ╔═╡ bf7221b0-ce7e-11ee-27b0-9f2268eee186
 md"""# Search Tanach"""
 
-# ╔═╡ 4982122e-1d9b-4d21-95ca-d8dc126503bb
-md"""*Search for* $(@bind searchtext confirm(TextField(default="") ))"""
+# ╔═╡ b438af32-8239-4593-a566-6819bd2aa7cc
+html"""
+<br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/>
+"""
+
+# ╔═╡ b138f3f5-195e-413d-91c1-d4b6f71a77c6
+md"""> Formatting results of search"""
+
+# ╔═╡ 1544496d-2760-4779-9eeb-2eb19235ff1e
+function triplelists(tknlist, index)
+	triples = []
+	for tkn in tknlist
+		for u in index[tkn]
+			wrk = workid(u) |> titlecase
+			psg = collapsePassageBy(u,1) |> passagecomponent
+			push!(triples, (tkn, wrk, psg))
+		end
+	end
+	triples
+end
+
+# ╔═╡ a323ea78-ce60-47d7-b28c-b6e514175b96
+function formatresults(tknlist, index, c::CitableTextCorpus; showpsg = false)
+	triples = triplelists(tknlist, index)
+
+	formatted = []
+	
+	for tr in triples
+		base = string(tr[1], " in <i>", tr[2], "</i> ", tr[3])
+		if showpsg
+			u = string("urn:cts:compnov:tanach.", lowercase(tr[2]),".masoretic:", tr[3])
+			matches = filter(c.passages) do psg
+				string(psg.urn) == u
+			end
+			for mtch in matches
+				hilited = replace(mtch.text, tr[1] => "<span class=\"hilited\">$(tr[1])</span>")
+				push!(formatted, string("<p>", base,".  <blockquote>", hilited, "</blockquote></p>"))
+			end
+		else
+			push!(formatted, string("<p>", base, "</p>"))
+		end
+	end
+	join(formatted, "\n") |> HTML
+end
 
 # ╔═╡ 071df142-a7fc-49db-aa23-684017157a9c
 md"""> Searching"""
@@ -39,7 +82,7 @@ md"""> Searching"""
 function conssearch(str, xcriptdict, psgdict)
 	allkeys = keys(xcriptdict)|> collect
 	keysv = filter(allkeys) do k
-		startswith(k, str)		
+		occursin(str, k)		
 	end
 
 	results = Dict()
@@ -57,11 +100,6 @@ function conssearch(str, xcriptdict, psgdict)
 	results
 end
 
-# ╔═╡ a323ea78-ce60-47d7-b28c-b6e514175b96
-function formatresults(tknlist)
-	tknlist
-end
-
 # ╔═╡ bdbb84bb-005a-473c-bb55-52b5dc1700f1
 function pointedsearch(str, psgsdict)
 	if haskey(psgsdict, str)
@@ -70,12 +108,6 @@ function pointedsearch(str, psgsdict)
 		"No key $(str)"
 	end
 end
-
-# ╔═╡ b438af32-8239-4593-a566-6819bd2aa7cc
-html"""
-<br/><br/><br/><br/><br/>
-<br/><br/><br/><br/><br/>
-"""
 
 # ╔═╡ 3c8acb24-4ae4-4fcc-a07c-5c9b76d2dcfe
 md"""> Load data"""
@@ -139,9 +171,6 @@ function xcriptsearch(str, formsdict, psgsdict )
 	conssearch(converted, consdict, tknidx)
 end
 
-# ╔═╡ 7deb71f9-50d8-431d-acc4-955f8c68ef36
-consdict |> keys |> collect
-
 # ╔═╡ 13a732de-1ad5-43b1-aac1-acbffe8fb955
 md"""> Display"""
 
@@ -187,12 +216,27 @@ aside(md"""
 """)
 end
 
+# ╔═╡ 7b93918a-8da5-4caa-909d-0ece956cdf3b
+"""Compose default lemma value in correct format."""
+function defaultsearch()
+	if stringformat == :xcript
+		"qyl"
+	elseif stringformat == :fullucode
+		"קָטַל"
+	elseif stringformat == :consonantucode
+		"קטל"
+	end
+end
+
+# ╔═╡ 4982122e-1d9b-4d21-95ca-d8dc126503bb
+md"""*Search for* $(@bind searchtext confirm(TextField(default=defaultsearch()) )) *Quote passage?* $(@bind quotepsg CheckBox())"""
+
 # ╔═╡ 2a51f423-4118-47fd-8c62-2cf18e85ab47
 searchoutput = if stringformat == :xcript
-	xcriptsearch(searchtext, consdict, tknidx)   |> formatresults
+	xcriptsearch(searchtext, consdict, tknidx)  
 	
 elseif stringformat == :consonantucode
-	conssearch(searchtext, consdict, tknidx) |> formatresults
+	conssearch(searchtext, consdict, tknidx)
 
 elseif stringformat ==  :fullucode
 	md"TBD"
@@ -205,23 +249,18 @@ choicemenu = keys(searchoutput) |> collect |> sort
 # ╔═╡ 5a4910c1-e2ee-48b0-8ee7-b8878fca8117
 @bind viewthese MultiCheckBox(choicemenu, select_all = true)
 
-# ╔═╡ 7b93918a-8da5-4caa-909d-0ece956cdf3b
-"""Compose default lemma value in correct format."""
-function defaultlemma()
-	if stringformat == :xcript
-		"qyl"
-	elseif stringformat == :fullucode
-		"קָטַל"
-	elseif stringformat == :consonantucode
-		"קטל"
-	end
-end
+# ╔═╡ 6d525b56-3325-41a1-97e3-d5709e4d3a50
+formatresults(viewthese, tknidx, corpus, showpsg = quotepsg)
 
 # ╔═╡ 2376ad72-4e8f-4980-950e-50495c073acc
 @htl """
 <style>
 	pluto-output {
 		--julia-mono-font-stack: system-ui,sans-serif;
+	}
+	.hilited {
+		background-color: yellow;
+		font-weight: bold;
 	}
 </style>
 """
@@ -968,22 +1007,24 @@ version = "17.4.0+2"
 # ╟─09744a5b-cbce-4d17-993e-9af9bce4e5bb
 # ╟─46bc4b1a-991e-4848-b125-2ef3ceafa5f0
 # ╟─4982122e-1d9b-4d21-95ca-d8dc126503bb
-# ╠═5a4910c1-e2ee-48b0-8ee7-b8878fca8117
-# ╠═2a51f423-4118-47fd-8c62-2cf18e85ab47
-# ╟─071df142-a7fc-49db-aa23-684017157a9c
-# ╠═6a4a7a8f-9b18-497b-9fb0-e0f3399f4ede
-# ╠═ebdeb8f1-4b03-4895-ab75-cd2a691035ab
-# ╟─7e947d8a-c92d-4f6b-87a6-08379fead1de
-# ╟─a323ea78-ce60-47d7-b28c-b6e514175b96
-# ╠═bdbb84bb-005a-473c-bb55-52b5dc1700f1
+# ╟─5a4910c1-e2ee-48b0-8ee7-b8878fca8117
+# ╟─6d525b56-3325-41a1-97e3-d5709e4d3a50
 # ╟─b438af32-8239-4593-a566-6819bd2aa7cc
+# ╟─b138f3f5-195e-413d-91c1-d4b6f71a77c6
+# ╠═1544496d-2760-4779-9eeb-2eb19235ff1e
+# ╠═a323ea78-ce60-47d7-b28c-b6e514175b96
+# ╟─071df142-a7fc-49db-aa23-684017157a9c
+# ╟─6a4a7a8f-9b18-497b-9fb0-e0f3399f4ede
+# ╟─2a51f423-4118-47fd-8c62-2cf18e85ab47
+# ╟─ebdeb8f1-4b03-4895-ab75-cd2a691035ab
+# ╟─7e947d8a-c92d-4f6b-87a6-08379fead1de
+# ╟─bdbb84bb-005a-473c-bb55-52b5dc1700f1
 # ╟─3c8acb24-4ae4-4fcc-a07c-5c9b76d2dcfe
 # ╟─73174f78-1e57-4594-8236-2dc8f4c22c3b
 # ╟─2a639fb2-f484-4d2f-845b-229c992edce5
 # ╟─616f7e9b-1f51-47a1-a6c7-3a18a7da5676
 # ╟─3371cb21-b07c-46a6-afaf-c77aa9521311
 # ╟─58d7585e-fead-4f19-91ea-3801511a910b
-# ╠═7deb71f9-50d8-431d-acc4-955f8c68ef36
 # ╠═100d4054-9e22-4fe3-96eb-34d9fd2d633c
 # ╟─13a732de-1ad5-43b1-aac1-acbffe8fb955
 # ╟─180d3b47-ae6a-4d53-9e9c-05296c1bf4cc
