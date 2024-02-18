@@ -11,4 +11,8 @@ Contents:
 
 > *Background information TBA*
 
+> *Add information about citable images*
+
+
+
 ![](./complutensis-title-page-small.png)
