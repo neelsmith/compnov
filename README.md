@@ -20,9 +20,12 @@ The file `scripts/citify.jl` is a Julia script for converting the ebibles source
 
 ### The Targum Onkelos
 
-The digital text of the Targum Onkelos is taken from the 
-
+The digital text of the Targum Onkelos is taken from the "merged" texts in this directory of the Sefaria project's data: 
 https://github.com/Sefaria/Sefaria-Export/tree/master/txt/Tanakh/Targum/Onkelos/Torah
+
+The text contents of the Sefaria files in in the directory `src/onkelos`. The file `src/onkelos/source-credits.txt` has the Sefaria project's metadata about each text.
+
+The script `src/onkelos/parse-onkelos.jl` is a Julia script that creates a single file in CEX format from the five source files.
 
 ## Other content
 
