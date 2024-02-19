@@ -1,5 +1,9 @@
 # *Biblia complutensis nova*: a digital polyglot Bible
 
+## What's it about?
+
+Using the Complutensian polyglot Bible to think about different ways to imagine a digital edition of a multilingual text corpus.
+
 ## Digital texts
 
 
