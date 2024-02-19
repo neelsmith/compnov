@@ -27,7 +27,20 @@ begin
 end
 
 # ╔═╡ bf7221b0-ce7e-11ee-27b0-9f2268eee186
-md"""# Search Tanach"""
+md"""# Search the Tanach
+
+!!! tip "💡 Settings"
+
+    Choose settings to:
+
+    - search for text entered in Unicode Hebrew or in transliteration
+    - match substrings, initial strings, or exact matches
+    - include the text of the matched passage in the display of results
+    
+"""
+
+# ╔═╡ c0c7cae3-2b41-45d1-88f5-9b8030286e5d
+md"""*Display passage in resuilts?* $(@bind quotepsg CheckBox())"""
 
 # ╔═╡ b438af32-8239-4593-a566-6819bd2aa7cc
 html"""
@@ -39,6 +52,7 @@ html"""
 md"""> Formatting results of search"""
 
 # ╔═╡ 1544496d-2760-4779-9eeb-2eb19235ff1e
+"""Compose triplets of token, book and passage."""
 function triplelists(tknlist, index)
 	triples = []
 	for tkn in tknlist
@@ -52,6 +66,7 @@ function triplelists(tknlist, index)
 end
 
 # ╔═╡ a323ea78-ce60-47d7-b28c-b6e514175b96
+"""Compose HTML display of search results."""
 function formatresults(tknlist, index, c::CitableTextCorpus; showpsg = false)
 	triples = triplelists(tknlist, index)
 
@@ -79,10 +94,17 @@ end
 md"""> Searching"""
 
 # ╔═╡ ebdeb8f1-4b03-4895-ab75-cd2a691035ab
-function conssearch(str, xcriptdict, psgdict)
+"""Search for a term given as consonants only."""
+function conssearch(str, xcriptdict, psgdict; searchmode = :substring)
 	allkeys = keys(xcriptdict)|> collect
 	keysv = filter(allkeys) do k
-		occursin(str, k)		
+		if searchmode == :substring
+			occursin(str, k)		
+		elseif search == :initial
+			startswith(str, k)		
+		elseif search == :exact
+			str == k
+		end
 	end
 
 	results = Dict()
@@ -101,11 +123,12 @@ function conssearch(str, xcriptdict, psgdict)
 end
 
 # ╔═╡ bdbb84bb-005a-473c-bb55-52b5dc1700f1
-function pointedsearch(str, psgsdict)
+"""Search for a fully pointed term."""
+function pointedsearch(str, psgsdict; searchmode = :substring)
 	if haskey(psgsdict, str)
-		psgsdict[str]
+		Dict([str => psgsdict[str]])
 	else
-		"No key $(str)"
+		Dict()
 	end
 end
 
@@ -126,6 +149,7 @@ tknidx = corpusindex(corpus, HebrewOrthography())
 md"""> Transcription"""
 
 # ╔═╡ 58d7585e-fead-4f19-91ea-3801511a910b
+"Dictionary mapping ASCII chars to Unicode codepoints for Hebrew consonants."
 xcriptdict = Dict([
 		'a' => 'א',
 		'b' => 'ב',
@@ -156,17 +180,22 @@ xcriptdict = Dict([
 	])
 
 # ╔═╡ 100d4054-9e22-4fe3-96eb-34d9fd2d633c
-begin
-	consdict = Dict()	
-	map(keys(tknidx) |> collect) do k
+"Compose a dictionary mapping consonantal strings to full pointed strings."
+function mappointedforms(idx)
+	dict = Dict()	
+	map(keys(idx) |> collect) do k
 		conskey = Unicode.normalize(k, stripmark = true)
-		consdict[conskey] = k
+		dict[conskey] = k
 	end
-	consdict
+	dict
 end
 
+# ╔═╡ be7466da-e21a-49a9-b389-41443c21c897
+consdict = mappointedforms(tknidx)
+
 # ╔═╡ 7e947d8a-c92d-4f6b-87a6-08379fead1de
-function xcriptsearch(str, formsdict, psgsdict )
+"""Search for a consonontal search term given in transcription."""
+function xcriptsearch(str, formsdict, psgsdict; searchmode = :substring )
 	converted = map(c -> xcriptdict[c], str) |> string
 	conssearch(converted, consdict, tknidx)
 end
@@ -181,7 +210,10 @@ formatmenu = [:fullucode => "Fully pointed Unicode Hebrew",
 ]
 
 # ╔═╡ 09744a5b-cbce-4d17-993e-9af9bce4e5bb
-md"""*Format* $(@bind stringformat Select(formatmenu, default = :xcript))"""
+md"""*Format of query string:* $(@bind stringformat Select(formatmenu, default = :xcript)) *Find words that* $(@bind searchtype Select([
+	:exact => "match query string exactly",
+	:substring => "contain query string",
+	:initial => "starts with query string"], default = :substring))"""
 
 # ╔═╡ 46bc4b1a-991e-4848-b125-2ef3ceafa5f0
 if stringformat == :xcript
@@ -229,28 +261,42 @@ function defaultsearch()
 end
 
 # ╔═╡ 4982122e-1d9b-4d21-95ca-d8dc126503bb
-md"""*Search for* $(@bind searchtext confirm(TextField(default=defaultsearch()) )) *Quote passage?* $(@bind quotepsg CheckBox())"""
+md"""*Search for string*: $(@bind searchtext confirm(TextField(default=defaultsearch()) ))
+"""
 
 # ╔═╡ 2a51f423-4118-47fd-8c62-2cf18e85ab47
 searchoutput = if stringformat == :xcript
-	xcriptsearch(searchtext, consdict, tknidx)  
+	xcriptsearch(searchtext, consdict, tknidx; searchmode = searchtype)  
 	
 elseif stringformat == :consonantucode
-	conssearch(searchtext, consdict, tknidx)
+	conssearch(searchtext, consdict, tknidx; searchmode = searchtype)
 
 elseif stringformat ==  :fullucode
-	md"TBD"
-	#conssearch(searchtext, consdict, tknidx) |> formatresults
+	pointedsearch(searchtext, tknidx; searchmode = searchtype)
+	
 end
 
 # ╔═╡ 6a4a7a8f-9b18-497b-9fb0-e0f3399f4ede
 choicemenu = keys(searchoutput) |> collect |> sort
+
+# ╔═╡ d3601dec-ea1e-45f7-9d15-f817f884c1c6
+if isempty(choicemenu)
+	md"""No words matched your query for *$(searchtext)*"""
+else
+md"""**$(length(choicemenu))** terms matched your query for *$(searchtext)*.
+
+*Select one or more terms to see where they occur:*
+"""
+end
 
 # ╔═╡ 5a4910c1-e2ee-48b0-8ee7-b8878fca8117
 @bind viewthese MultiCheckBox(choicemenu, select_all = true)
 
 # ╔═╡ 6d525b56-3325-41a1-97e3-d5709e4d3a50
 formatresults(viewthese, tknidx, corpus, showpsg = quotepsg)
+
+# ╔═╡ 5fc287ae-94d4-41f0-a38e-4285364821fd
+md"""The following (hidden) cell hijacks some of Pluto's CSS to ensure readable display of pointed Hebrew."""
 
 # ╔═╡ 2376ad72-4e8f-4980-950e-50495c073acc
 @htl """
@@ -1005,30 +1051,34 @@ version = "17.4.0+2"
 # ╟─1a967ff6-d033-4687-8903-38150cf13cf0
 # ╟─bf7221b0-ce7e-11ee-27b0-9f2268eee186
 # ╟─09744a5b-cbce-4d17-993e-9af9bce4e5bb
+# ╟─c0c7cae3-2b41-45d1-88f5-9b8030286e5d
 # ╟─46bc4b1a-991e-4848-b125-2ef3ceafa5f0
 # ╟─4982122e-1d9b-4d21-95ca-d8dc126503bb
+# ╟─d3601dec-ea1e-45f7-9d15-f817f884c1c6
 # ╟─5a4910c1-e2ee-48b0-8ee7-b8878fca8117
 # ╟─6d525b56-3325-41a1-97e3-d5709e4d3a50
 # ╟─b438af32-8239-4593-a566-6819bd2aa7cc
 # ╟─b138f3f5-195e-413d-91c1-d4b6f71a77c6
-# ╠═1544496d-2760-4779-9eeb-2eb19235ff1e
-# ╠═a323ea78-ce60-47d7-b28c-b6e514175b96
+# ╟─1544496d-2760-4779-9eeb-2eb19235ff1e
+# ╟─a323ea78-ce60-47d7-b28c-b6e514175b96
 # ╟─071df142-a7fc-49db-aa23-684017157a9c
-# ╟─6a4a7a8f-9b18-497b-9fb0-e0f3399f4ede
 # ╟─2a51f423-4118-47fd-8c62-2cf18e85ab47
 # ╟─ebdeb8f1-4b03-4895-ab75-cd2a691035ab
-# ╟─7e947d8a-c92d-4f6b-87a6-08379fead1de
-# ╟─bdbb84bb-005a-473c-bb55-52b5dc1700f1
+# ╠═7e947d8a-c92d-4f6b-87a6-08379fead1de
+# ╠═bdbb84bb-005a-473c-bb55-52b5dc1700f1
 # ╟─3c8acb24-4ae4-4fcc-a07c-5c9b76d2dcfe
 # ╟─73174f78-1e57-4594-8236-2dc8f4c22c3b
 # ╟─2a639fb2-f484-4d2f-845b-229c992edce5
 # ╟─616f7e9b-1f51-47a1-a6c7-3a18a7da5676
 # ╟─3371cb21-b07c-46a6-afaf-c77aa9521311
+# ╟─be7466da-e21a-49a9-b389-41443c21c897
 # ╟─58d7585e-fead-4f19-91ea-3801511a910b
-# ╠═100d4054-9e22-4fe3-96eb-34d9fd2d633c
+# ╟─100d4054-9e22-4fe3-96eb-34d9fd2d633c
 # ╟─13a732de-1ad5-43b1-aac1-acbffe8fb955
+# ╟─6a4a7a8f-9b18-497b-9fb0-e0f3399f4ede
 # ╟─180d3b47-ae6a-4d53-9e9c-05296c1bf4cc
 # ╟─7b93918a-8da5-4caa-909d-0ece956cdf3b
-# ╠═2376ad72-4e8f-4980-950e-50495c073acc
+# ╟─5fc287ae-94d4-41f0-a38e-4285364821fd
+# ╟─2376ad72-4e8f-4980-950e-50495c073acc
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
