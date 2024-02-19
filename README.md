@@ -1,5 +1,10 @@
 # *Biblia complutensis nova*: a digital polyglot Bible
 
+## Sources for texts
+
+### Tanach, Vulgate, Septuagint
+
+The texts of the Hebrew Bible, the Latin translation of Jerome and the Greek translation of the Septuagint are from ebibles.org
 Contents: 
 
 - `src`: openly licensed Bibles from ebibles.org
@@ -9,9 +14,8 @@ Contents:
 
 ## The original Complutensis
 
-> *Background information TBA*
 
-> *Add information about citable images*
+- The National Library of Spain has made images of its copy of the Complutensis available.
 
 
 
