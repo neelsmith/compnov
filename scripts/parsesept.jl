@@ -40,3 +40,20 @@ end
 
 
 parses = parsewordlist(vocab, parser)
+
+
+fails = []
+for (wd, alist) in zip(vocab, parses)
+    if isempty(alist)
+        push!(fails, wd)
+    end
+end
+
+
+failfreqs = map(fails) do wd
+    string(wd, " ", wordformfreqs[wd])
+end
+
+open("failed-counts.txt", "w") do  io
+    write(io, join(failfreqs, "\n"))
+end
