@@ -42,6 +42,34 @@ md"""!!! tip "How to search"
 # ╔═╡ 5c235905-2630-4d09-a6ec-f27756d0802e
 md"""*Enter lemma form* $(@bind lemma TextField(placeholder="ποιεω"))"""
 
+# ╔═╡ 76ca3e90-b28c-4979-a8af-06bf4a841a70
+md"""!!! tip
+
+    Limit display of results to selected forms and texts
+"""
+
+# ╔═╡ 171486cd-1677-4e75-9729-253534d10ac5
+"""Format passage for reader"""
+function formatpassage(u, c; showtext = true)
+	
+
+	
+	s1 = string("- ", titlecase(workid(u)), " ", passagecomponent(u))
+	if showtext
+		citable = filter(c.passages) do p
+			workid(p.urn) == workid(u) &&
+			passagecomponent(p.urn) == passagecomponent(collapsePassageBy(u,1))
+		end
+		
+		
+		s1 * "\n> " * citable[1].text
+	else
+		s1
+	end
+	#join([) for p in psgmatches], "\n")
+	#workid(u)
+end
+
 # ╔═╡ 89b30423-6107-48bd-a7e3-ef25f1220b2d
 html"""
 <br/><br/><br/><br/>
@@ -146,7 +174,7 @@ else
 	else 
 		starter = matches[1]
 		completion = replace(starter, lemma => "")
-		starterhtml = "<i>Lemma</i>:  <b>$(lemma)</b><span class='gray'>$(completion)</span>"
+		starterhtml = "<i>Next matching lemma</i>:  <b>$(lemma)</b><span class='gray'>$(completion)</span>"
 	
 		HTML(starterhtml)
 		end
@@ -172,11 +200,6 @@ else
 	[]
 end
 
-# ╔═╡ c855eacd-f03c-499f-9e24-ab52554e2b29
-	if ! isempty(parsematches) 
-		"*Lexeme has $(length(parsematches)) parsed forms*"	 |> Markdown.parse
-	end
-
 # ╔═╡ 9ed65efb-9716-45bb-ac91-880c65546862
 matchedforms = map(parsematches) do alist
 	alist[1].token
@@ -187,7 +210,7 @@ end
 
 # ╔═╡ 39aadfc8-98d5-48a2-a491-3b8a70edebff
 begin
-	psgmatch = CtsUrn[]
+	psgmatches = CtsUrn[]
 	for frm in selectedforms
 		if haskey(tknidx, frm)
 			ulist = tknidx[frm]
@@ -195,13 +218,40 @@ begin
 				titlecase(workid(u)) in selectedbooks
 			end
 			for u in inbooks
-				push!(psgmatch, u)
+				push!(psgmatches, u)
 			end
 		end
 	end
 	#join([string("- ", titlecase(workid(u)) , " ", passagecomponent(u)) for u in psgmatch], "\n") |> Markdown.parse
-	psgmatch
+	psgmatches
 end
+
+# ╔═╡ 34349855-1939-4048-b7c9-2873d6fe57c3
+md"""The selected **$(length(selectedforms)) forms**(s)  appear in **$(length(psgmatches)) passages** in the selected book(s)."""
+
+# ╔═╡ 60b9f45c-465f-44f8-b3e9-5e037ba3445d
+
+join([formatpassage(u,sept) for u in psgmatches], "\n") |> Markdown.parse
+
+
+# ╔═╡ 2631bdf7-cb63-4824-ba87-69f18bea39d4
+if isempty(lemma)
+		md""
+else
+	lemmamatches = filter(s -> startswith(s, lemma), lemmakeys)
+	if isempty(lemmamatches)
+		
+	else 
+		strippedlemm = lemmamatches[1]
+		accentedlemm = idstolemmata[lemmatoid[strippedlemm]]
+		
+	end
+end
+
+# ╔═╡ c855eacd-f03c-499f-9e24-ab52554e2b29
+	if ! isempty(parsematches) 
+		"""## Results\n\nLexeme **$(accentedlemm)** has **$(length(parsematches))** parsed forms in the Septuagint."""	 |> Markdown.parse
+	end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1002,12 +1052,14 @@ version = "17.4.0+2"
 # ╟─22ce254c-f0f3-469c-8c75-92165133e3d6
 # ╟─692833fc-dafa-11ee-3df1-916a7d64d5c1
 # ╟─81a6d377-3fb6-483f-8064-d07fce7b30ed
-# ╟─408cc901-79b5-4c06-9591-0947133107c6
 # ╟─5c235905-2630-4d09-a6ec-f27756d0802e
 # ╟─3dd6db5b-e860-4199-8fd5-438190d5b67f
 # ╟─c855eacd-f03c-499f-9e24-ab52554e2b29
+# ╟─76ca3e90-b28c-4979-a8af-06bf4a841a70
 # ╟─b4e1efbd-b5dc-42f8-bcbe-b73d1713d4be
-# ╠═39aadfc8-98d5-48a2-a491-3b8a70edebff
+# ╟─408cc901-79b5-4c06-9591-0947133107c6
+# ╟─34349855-1939-4048-b7c9-2873d6fe57c3
+# ╟─60b9f45c-465f-44f8-b3e9-5e037ba3445d
 # ╟─89b30423-6107-48bd-a7e3-ef25f1220b2d
 # ╟─68a7ab0e-6d01-4e1f-8e01-e23eae6bf09d
 # ╟─e7a638b3-6f31-4d43-93d8-6b52bc97338e
@@ -1034,5 +1086,8 @@ version = "17.4.0+2"
 # ╟─a7df0468-c9e5-4ef4-8dff-866da7ba3b2a
 # ╠═9ed65efb-9716-45bb-ac91-880c65546862
 # ╟─9268ce48-4190-4f1a-92b5-b50cacef63fb
+# ╠═2631bdf7-cb63-4824-ba87-69f18bea39d4
+# ╟─171486cd-1677-4e75-9729-253534d10ac5
+# ╠═39aadfc8-98d5-48a2-a491-3b8a70edebff
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
