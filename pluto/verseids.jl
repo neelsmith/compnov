@@ -97,10 +97,15 @@ md"""*Chapter:* $(@bind chap Select(chaptermenu(c, bk)))"""
 md"""### *$(bk)*, chapter $(chap), in $(titlecase(textversion))
 """
 
+# ╔═╡ 5e04332c-5281-4916-b1c2-17813224d7bc
+begin
+	u = "urn:cts:compnov:tanach.$(lowercase(bk)).$(textversion):$(chap)"  |> CtsUrn
+	""">CTS URN: `$(u)`""" |> Markdown.parse
+end
+
 # ╔═╡ 959c27ef-13aa-481b-8de1-b28bb547bfe7
 psg = begin
 	refstart = chap * "."
-	#u = "urn:cts:compnov:tanach.$(lowercase(bk)).$(textversion):$(chap)" |> CtsUrn
 	filter(c.passages) do psg
 		startswith(passagecomponent(psg.urn) , refstart) &&
 		versionid(psg.urn) == textversion &&
@@ -676,6 +681,7 @@ version = "17.4.0+2"
 # ╟─d8ff1d8a-537f-4a26-a93c-db9dc5478c69
 # ╟─0f0d8460-6720-4d67-8346-c194905902b8
 # ╟─085bb3c8-f60a-4504-a6f1-131b3dba24f6
+# ╟─5e04332c-5281-4916-b1c2-17813224d7bc
 # ╟─1562f46e-4ace-48af-add1-297dfc8a4432
 # ╟─65a1b07c-4ff9-4e34-878c-0083199f1d5f
 # ╟─e2f3bd85-17e6-4e59-99ce-f8cc73707f3a
