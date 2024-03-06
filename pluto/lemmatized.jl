@@ -4,13 +4,24 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 0210771d-943f-4457-ad8b-dcb0e351b277
 begin
 	using Kanones, CitableParserBuilder
 	using CitableBase, CitableCorpus, CitableText
 	using Orthography, PolytonicGreek
 	using StatsBase, OrderedCollections
-
+	
+	using Unicode
 	using Downloads
 	using PlutoUI
 	md"""*Unhide this cell to see the Julia environment.*"""
@@ -22,8 +33,14 @@ TableOfContents()
 # ╔═╡ 692833fc-dafa-11ee-3df1-916a7d64d5c1
 md"""# Lemmatized search"""
 
-# ╔═╡ 8bc29326-8c9e-4a14-bd3e-d1066f9bd2d3
-md"""Make a menu of lemmata here!"""
+# ╔═╡ 81a6d377-3fb6-483f-8064-d07fce7b30ed
+md"""!!! tip "How to search"
+
+    Enter a lemma in Unicode Greek without accents or breathings.
+"""
+
+# ╔═╡ 5c235905-2630-4d09-a6ec-f27756d0802e
+md"""*Enter lemma form* $(@bind lemma TextField(placeholder="ποιεω"))"""
 
 # ╔═╡ 89b30423-6107-48bd-a7e3-ef25f1220b2d
 html"""
@@ -74,8 +91,14 @@ sept = filter(corpus.passages) do psg
 end |> CitableTextCorpus
 
 
+# ╔═╡ 35b1089a-91b0-4027-b946-25135712b2f8
+worklist = map(psg -> workid(psg.urn), corpus.passages) |> unique .|> titlecase
+
+# ╔═╡ 408cc901-79b5-4c06-9591-0947133107c6
+@bind selectedbooks MultiCheckBox(worklist, select_all = true)
+
 # ╔═╡ b9d96e5e-b329-493d-8296-abaeb0876674
-md"""> ## Indexing"""
+md"""> ## Parsing and indexing"""
 
 # ╔═╡ 4d161d6e-702e-47d2-baae-b611f9ddca97
 tknidx = corpusindex(sept, ortho)
@@ -83,11 +106,102 @@ tknidx = corpusindex(sept, ortho)
 # ╔═╡ 63ae82ab-9c10-4a9a-b71c-724b539f692e
 lckeys = tknidx |> keys |> collect .|> lowercase
 
+# ╔═╡ 28cad031-76cf-46d8-96e9-b08d664a88c5
+parses = parsewordlist(unique(lckeys), parser)
+
+# ╔═╡ ff30be2a-c993-4998-8c67-d64cf9d8fe28
+idedparses = filter(alist -> ! isempty(alist), parses)
+
+# ╔═╡ 72b17c80-9692-4d19-b6da-a25c12c9571a
+md"""> ## UI for search"""
+
+# ╔═╡ 10be415c-8eaa-436a-b30f-42e06b3ac23b
+"""Create index of accent-free forms to lexeme ID values."""
+function reversedict(d)
+	
+	flipped = Dict()
+	for k in keys(d)
+		stripped = Unicode.normalize(d[k], stripmark = true)
+		flipped[stripped] = k
+	end
+	flipped
+end
+
 # ╔═╡ e1a7603d-a4c5-4126-b8af-721bc7427a99
 idstolemmata = lemmatadict()
 
-# ╔═╡ 28cad031-76cf-46d8-96e9-b08d664a88c5
-parses = parsewordlist(unique(lckeys), parser)
+# ╔═╡ 5a35e94f-7dd6-48b0-bb40-7252de45a065
+lemmatoid = reversedict(idstolemmata)
+
+# ╔═╡ 88398653-ef3b-450d-bd2b-9ff85b1f42ce
+lemmakeys = keys(lemmatoid) |> collect .|> lowercase |> sort
+
+# ╔═╡ 3dd6db5b-e860-4199-8fd5-438190d5b67f
+if isempty(lemma)
+		md""
+else
+	matches = filter(s -> startswith(s, lemma), lemmakeys)
+	if isempty(matches)
+		HTML("<span class='gray'>(no matches)</span>")
+	else 
+		starter = matches[1]
+		completion = replace(starter, lemma => "")
+		starterhtml = "<i>Lemma</i>:  <b>$(lemma)</b><span class='gray'>$(completion)</span>"
+	
+		HTML(starterhtml)
+		end
+end
+
+# ╔═╡ a7df0468-c9e5-4ef4-8dff-866da7ba3b2a
+css  = html"""
+<style>
+.gray {
+ color: silver;
+}
+</style>
+"""
+
+# ╔═╡ 9268ce48-4190-4f1a-92b5-b50cacef63fb
+parsematches = if haskey(lemmatoid, lemma)
+	nval = lemmatoid[lemma]
+	
+	filter(idedparses) do parse
+		parse[1].lexeme.objectid == nval
+	end
+else 
+	[]
+end
+
+# ╔═╡ c855eacd-f03c-499f-9e24-ab52554e2b29
+	if ! isempty(parsematches) 
+		"*Lexeme has $(length(parsematches)) parsed forms*"	 |> Markdown.parse
+	end
+
+# ╔═╡ 9ed65efb-9716-45bb-ac91-880c65546862
+matchedforms = map(parsematches) do alist
+	alist[1].token
+end
+
+# ╔═╡ b4e1efbd-b5dc-42f8-bcbe-b73d1713d4be
+@bind selectedforms MultiCheckBox(matchedforms, select_all=true)
+
+# ╔═╡ 39aadfc8-98d5-48a2-a491-3b8a70edebff
+begin
+	psgmatch = CtsUrn[]
+	for frm in selectedforms
+		if haskey(tknidx, frm)
+			ulist = tknidx[frm]
+			inbooks = filter(ulist) do u
+				titlecase(workid(u)) in selectedbooks
+			end
+			for u in inbooks
+				push!(psgmatch, u)
+			end
+		end
+	end
+	#join([string("- ", titlecase(workid(u)) , " ", passagecomponent(u)) for u in psgmatch], "\n") |> Markdown.parse
+	psgmatch
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -103,6 +217,7 @@ Orthography = "0b4c9448-09b0-4e78-95ea-3eb3328be36d"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PolytonicGreek = "72b824a7-2b4a-40fa-944c-ac4f345dc63a"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [compat]
 CitableBase = "~10.3.1"
@@ -123,7 +238,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.0"
 manifest_format = "2.0"
-project_hash = "a180f6358660c9e8cf3a37bfa73161ea478fc0de"
+project_hash = "4fd15bace12d5dec52b1212bd9b039687bb484bf"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -886,7 +1001,13 @@ version = "17.4.0+2"
 # ╟─0210771d-943f-4457-ad8b-dcb0e351b277
 # ╟─22ce254c-f0f3-469c-8c75-92165133e3d6
 # ╟─692833fc-dafa-11ee-3df1-916a7d64d5c1
-# ╠═8bc29326-8c9e-4a14-bd3e-d1066f9bd2d3
+# ╟─81a6d377-3fb6-483f-8064-d07fce7b30ed
+# ╟─408cc901-79b5-4c06-9591-0947133107c6
+# ╟─5c235905-2630-4d09-a6ec-f27756d0802e
+# ╟─3dd6db5b-e860-4199-8fd5-438190d5b67f
+# ╟─c855eacd-f03c-499f-9e24-ab52554e2b29
+# ╟─b4e1efbd-b5dc-42f8-bcbe-b73d1713d4be
+# ╠═39aadfc8-98d5-48a2-a491-3b8a70edebff
 # ╟─89b30423-6107-48bd-a7e3-ef25f1220b2d
 # ╟─68a7ab0e-6d01-4e1f-8e01-e23eae6bf09d
 # ╟─e7a638b3-6f31-4d43-93d8-6b52bc97338e
@@ -899,10 +1020,19 @@ version = "17.4.0+2"
 # ╟─68869239-9f6f-440e-8cf8-f2e0956a8cf2
 # ╟─815d0099-3a48-46ae-a1c0-4be17b77be6e
 # ╟─7350d6c6-09e0-4347-b4f5-a5cfa02dc1d5
+# ╟─35b1089a-91b0-4027-b946-25135712b2f8
 # ╟─b9d96e5e-b329-493d-8296-abaeb0876674
 # ╟─4d161d6e-702e-47d2-baae-b611f9ddca97
 # ╟─63ae82ab-9c10-4a9a-b71c-724b539f692e
-# ╟─e1a7603d-a4c5-4126-b8af-721bc7427a99
+# ╠═ff30be2a-c993-4998-8c67-d64cf9d8fe28
 # ╠═28cad031-76cf-46d8-96e9-b08d664a88c5
+# ╟─72b17c80-9692-4d19-b6da-a25c12c9571a
+# ╟─88398653-ef3b-450d-bd2b-9ff85b1f42ce
+# ╟─5a35e94f-7dd6-48b0-bb40-7252de45a065
+# ╟─10be415c-8eaa-436a-b30f-42e06b3ac23b
+# ╟─e1a7603d-a4c5-4126-b8af-721bc7427a99
+# ╟─a7df0468-c9e5-4ef4-8dff-866da7ba3b2a
+# ╠═9ed65efb-9716-45bb-ac91-880c65546862
+# ╟─9268ce48-4190-4f1a-92b5-b50cacef63fb
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
