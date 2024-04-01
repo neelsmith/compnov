@@ -75,7 +75,7 @@ function formatresults(tknlist, index, c::CitableTextCorpus; showpsg = false)
 	for tr in triples
 		base = string(tr[1], " in <i>", tr[2], "</i> ", tr[3])
 		if showpsg
-			u = string("urn:cts:compnov:tanach.", lowercase(tr[2]),".masoretic:", tr[3])
+			u = string("urn:cts:compnov:bible.", lowercase(tr[2]),".masoretic:", tr[3])
 			matches = filter(c.passages) do psg
 				string(psg.urn) == u
 			end

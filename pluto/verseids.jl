@@ -99,7 +99,7 @@ md"""### *$(bk)*, chapter $(chap), in $(titlecase(textversion))
 
 # ╔═╡ 5e04332c-5281-4916-b1c2-17813224d7bc
 begin
-	u = "urn:cts:compnov:tanach.$(lowercase(bk)).$(textversion):$(chap)"  |> CtsUrn
+	u = "urn:cts:compnov:bible.$(lowercase(bk)).$(textversion):$(chap)"  |> CtsUrn
 	""">CTS URN: `$(u)`""" |> Markdown.parse
 end
 

@@ -147,7 +147,7 @@ worklist = map(psg -> workid(psg.urn), sept.passages) |> unique
 md"""**Selection to analyze:** *book*: $(@bind bk Select(worklist)) *passage* $(@bind psgref confirm(TextField()))"""
 
 # ╔═╡ 458c10e2-9d72-4763-9d35-9be3bb14fe66
-queryu = CtsUrn("urn:cts:compnov:tanach.$(bk).septuagint:$(psgref)")
+queryu = CtsUrn("urn:cts:compnov:bible.$(bk).septuagint:$(psgref)")
 
 # ╔═╡ 163eb45b-b8ac-43d4-83f3-302f787cba22
 """Retrieve a range reference from a corpus"""

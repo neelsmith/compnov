@@ -67,7 +67,7 @@ version = Dict([
     ("hbo_vpl.txt", "masoretic" ),
     ("latVUC-OT_vpl.txt", "vulgate")
 ])
-urnbase = "urn:cts:compnov:tanach."
+urnbase = "urn:cts:compnov:bible."
 
 src = joinpath(pwd(), "src")
 corpuslines = []

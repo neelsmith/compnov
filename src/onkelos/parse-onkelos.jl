@@ -6,7 +6,7 @@ function formattext(f, book)
         !isempty(ln)
     end
 
-    urnbase = "urn:cts:compnov:tanach.$(book).onkelos:"
+    urnbase = "urn:cts:compnov:bible.$(book).onkelos:"
     reff = []
     chap = ""
     verse = 0
