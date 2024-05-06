@@ -6,11 +6,11 @@ deuteronomy
 joshua
 judges
 ruth
-samuel1
-samuel2
-kings1
-kings2
-chronicles2
+1samuel
+2samuel
+1kings
+2kings
+2chronicles
 ezra
 job
 psalms
@@ -33,6 +33,6 @@ zephaniah
 haggai
 zechariah
 malachi
-maccabees1
-maccabees2
-maccabees3
+1maccabees
+2maccabees
+3maccabees

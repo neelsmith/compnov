@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -21,6 +21,7 @@ begin
 	using Orthography, PolytonicGreek
 
 	using Downloads
+	using HypertextLiteral
 	using PlutoUI
 	md"""*Unhide this cell to see the Julia environment*."""
 end
@@ -28,8 +29,28 @@ end
 # ╔═╡ 289a17a3-e79a-41ce-bb08-6d7be5fd4045
 TableOfContents()
 
-# ╔═╡ 7f411817-9b2d-476b-aea0-0655b3f23cfc
-md"""**Analyses**:"""
+# ╔═╡ a76705de-783d-48fb-b2f5-f134fca283ed
+"""Format passages for markdown display."""
+function formatpassage(psg, checklist)
+	#string("*", titlecase(workid(psg.urn)),"* ", passagecomponent(psg.urn), ":\n> ", psg.text)
+	tkns = split(psg.text)
+	nopunct = [filter(c -> ! ispunct(c), t) for t in tkns]
+
+	wrapped = []
+	for (i, tkn) in enumerate(nopunct)
+		if tkn in checklist
+			s = string("<span class=\"hilite\">", tkns[i], "</span>")
+			push!(wrapped, s)
+		else
+			push!(wrapped, tkns[i])
+		end
+	end
+	
+	htmlstr = join(wrapped, " ")
+	out = string("<blockquote>",htmlstr,"</blockquote>")
+	#html"""<blockquote>$(htmlstr)</blockquote>"""
+	out
+end
 
 # ╔═╡ c2e59afa-61d2-4b7e-9515-cef97ec4d914
 md"""!!! warning "Just guessing"
@@ -139,17 +160,6 @@ end
 # ╔═╡ e6b7e046-331c-47ef-ae1f-02f313942be3
 selectedpsg = retrieve(book, verse, sept)
 
-# ╔═╡ a76705de-783d-48fb-b2f5-f134fca283ed
-"""Format passages for markdown display."""
-function formatpassage(psg)
-	#string("*", titlecase(workid(psg.urn)),"* ", passagecomponent(psg.urn), ":\n> ", psg.text)
-	"> $(psg.text)"
-end
-
-
-# ╔═╡ f84c423f-01f1-4b32-b67d-cc6932111a31
- selectedpsg |> formatpassage |> Markdown.parse
-
 # ╔═╡ dacc8642-3320-48a7-ac56-5ff23a302581
 md"""> ## Tokenizing"""
 
@@ -165,19 +175,20 @@ formslist = [t.passage.text for t in lex]
 # ╔═╡ 9032bb62-14a2-4817-a75a-63f23bbc4a53
 parses = parsewordlist(formslist, parser)
 
+# ╔═╡ 3bb306e9-47ec-4f56-91f8-e1f4c44d9ee1
+formslist
+
 # ╔═╡ acf97178-4a19-43ba-9d21-6d9cf4b18377
 formsmenu = [i => formslist[i] for i in 1:length(formslist)]
 
-# ╔═╡ 3d755ce3-44e0-4206-a593-2c4e21d49e1e
-md"""*Choose a word to analyze*: $(@bind showme Select(formsmenu))"""
+# ╔═╡ 4c90ddf0-1478-456e-9e87-169b943f30f7
+md"""*See analyses for*: $(@bind showthese MultiCheckBox(formsmenu))"""
 
-# ╔═╡ 20757e07-7ae3-4547-9d03-de06338bcc66
-if length(formslist[showme]) == 1
-		md"""For **$(formslist[showme])**,  $(length(parses[showme])) analysis."""
-else
-	
-	md"""For **$(formslist[showme])**,  $(length(parses[showme])) analyses."""
-end
+# ╔═╡ 923445f1-e5ae-4c72-9a26-69ea69e3a171
+	selectedtokens = map(idx -> formslist[idx], showthese)
+
+# ╔═╡ f84c423f-01f1-4b32-b67d-cc6932111a31
+formatpassage(selectedpsg, selectedtokens) |> HTML
 
 # ╔═╡ 690eea8a-fea7-4306-88ea-af57c6382210
 """Format Markdown display of form"""
@@ -185,8 +196,15 @@ function formatanalysis(an)
 	an.form |> greekForm |> label
 end
 
-# ╔═╡ 70cf172b-a725-4878-917a-d913858eac54
-join([string("1. ", formatanalysis(a)) for a in parses[showme]],"\n") |> Markdown.parse
+# ╔═╡ 3fdcb5e5-74bb-44fc-af6a-fd2a840ea1e6
+begin
+	formsdisplay  = []
+	for selectedform in showthese
+		formdisplay = join([string("1. **", formslist[selectedform], "**, ", formatanalysis(a)) for a in parses[selectedform]],"\n")# |> Markdown.parse
+		push!(formsdisplay, formdisplay)
+	end
+	join(formsdisplay,"\n") |> Markdown.parse
+end
 
 # ╔═╡ b825bd8f-5fdf-44c4-beea-18158aed4361
 noanalysisidx = findall(plist -> isempty(plist), parses)
@@ -208,6 +226,19 @@ else
 	faillist = join(failed,"\n") |> Markdown.parse
 end
 
+# ╔═╡ 163ae3a3-30f2-462a-8b93-f24bbd09b44a
+@htl """
+<style>
+	pluto-output {
+		--julia-mono-font-stack: system-ui,sans-serif;
+	}
+	.hilite {
+		background-color: yellow;
+		font-weight: bold;
+	}
+</style>
+"""
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -216,6 +247,7 @@ CitableCorpus = "cf5ac11a-93ef-4a1a-97a3-f6af101603b5"
 CitableParserBuilder = "c834cb9d-35b9-419a-8ff8-ecaeea9e2a2a"
 CitableText = "41e66566-473b-49d4-85b7-da83b66615d8"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 Kanones = "107500f9-53d4-4696-8485-0747242ad8bc"
 Orthography = "0b4c9448-09b0-4e78-95ea-3eb3328be36d"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
@@ -226,6 +258,7 @@ CitableBase = "~10.3.1"
 CitableCorpus = "~0.13.5"
 CitableParserBuilder = "~0.25.1"
 CitableText = "~0.16.2"
+HypertextLiteral = "~0.9.5"
 Kanones = "~0.24.1"
 Orthography = "~0.21.3"
 PlutoUI = "~0.7.58"
@@ -236,9 +269,9 @@ PolytonicGreek = "~0.21.11"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.0"
+julia_version = "1.10.1"
 manifest_format = "2.0"
-project_hash = "57972951f0f44aebccf8b571aa1fb14479b0313b"
+project_hash = "289cf797738e9f7e89eddfeccd6ef7fe18b14872"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -368,7 +401,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.0.5+1"
+version = "1.1.0+0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -701,7 +734,7 @@ version = "1.2.0"
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.23+2"
+version = "0.3.23+4"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
@@ -1004,18 +1037,17 @@ version = "17.4.0+2"
 # ╟─a8fed7ce-26c2-476a-a573-544a14853f7b
 # ╟─6dbef999-1916-449f-b722-44c1a5c32135
 # ╟─1d69d1de-0297-488e-ae79-a2a118ab2095
+# ╟─a76705de-783d-48fb-b2f5-f134fca283ed
 # ╟─f84c423f-01f1-4b32-b67d-cc6932111a31
-# ╟─3d755ce3-44e0-4206-a593-2c4e21d49e1e
-# ╟─7f411817-9b2d-476b-aea0-0655b3f23cfc
-# ╟─20757e07-7ae3-4547-9d03-de06338bcc66
-# ╟─70cf172b-a725-4878-917a-d913858eac54
+# ╟─4c90ddf0-1478-456e-9e87-169b943f30f7
+# ╟─3fdcb5e5-74bb-44fc-af6a-fd2a840ea1e6
 # ╟─33f10955-df93-437c-924e-add1b484336f
 # ╟─83ce3f40-b718-4e9b-829f-1c7965c70525
 # ╟─c2e59afa-61d2-4b7e-9515-cef97ec4d914
 # ╟─07571440-9a60-4539-a862-1b87853bf3f9
 # ╟─4ab07c7e-eeab-47ba-a970-108ed2083e7a
 # ╟─6099eb66-6e13-4986-8a9c-515efcd6d9d1
-# ╠═90acf012-b7c5-4a9a-90fe-071deee41a95
+# ╟─90acf012-b7c5-4a9a-90fe-071deee41a95
 # ╟─c5b56926-a012-45f6-890b-898e7db8e103
 # ╟─7e852d44-299c-498a-9684-1448a6a50cab
 # ╟─9032bb62-14a2-4817-a75a-63f23bbc4a53
@@ -1027,17 +1059,19 @@ version = "17.4.0+2"
 # ╟─71520e7e-5424-4a7d-8ced-f5b648fbc607
 # ╟─389c3acc-d47e-42ec-98f0-b2a43fd23c25
 # ╟─d0e20af9-95f0-427a-8e11-5441412e5e97
+# ╟─3bb306e9-47ec-4f56-91f8-e1f4c44d9ee1
 # ╟─e6b7e046-331c-47ef-ae1f-02f313942be3
 # ╟─30a18ef4-d0d3-48d0-8537-ab7f94e0985a
 # ╟─f35abc0b-43d1-498a-9fb4-316708670c4b
 # ╟─acf97178-4a19-43ba-9d21-6d9cf4b18377
+# ╟─923445f1-e5ae-4c72-9a26-69ea69e3a171
 # ╟─edb5a8ad-398d-43bc-b9bb-87fe3542c169
-# ╠═a76705de-783d-48fb-b2f5-f134fca283ed
 # ╟─dacc8642-3320-48a7-ac56-5ff23a302581
-# ╠═be294d15-c0a3-4836-96b9-933e24e58c4f
-# ╠═341c91e8-b590-425c-b224-ca7b7daff1c9
-# ╠═82ffcb74-481b-434b-bf5d-1dac8f6b4eef
+# ╟─be294d15-c0a3-4836-96b9-933e24e58c4f
+# ╟─341c91e8-b590-425c-b224-ca7b7daff1c9
+# ╟─82ffcb74-481b-434b-bf5d-1dac8f6b4eef
 # ╟─690eea8a-fea7-4306-88ea-af57c6382210
-# ╠═b825bd8f-5fdf-44c4-beea-18158aed4361
+# ╟─b825bd8f-5fdf-44c4-beea-18158aed4361
+# ╠═163ae3a3-30f2-462a-8b93-f24bbd09b44a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

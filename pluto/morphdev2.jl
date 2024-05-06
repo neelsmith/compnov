@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -15,7 +15,9 @@ macro bind(def, element)
 end
 
 # ╔═╡ b299ef3e-0d10-11ee-1c90-cdb43d1046f1
+# ╠═╡ show_logs = false
 begin
+	using Downloads
 	using PlutoUI, HypertextLiteral
 	using CSV, DataFrames
 	using Orthography, PolytonicGreek, ManuscriptOrthography
@@ -40,6 +42,61 @@ md"""*Load a parser from a local file*: $(@bind file_data FilePicker())"""
 # ╔═╡ e1f03ac9-eff3-426a-9087-aed0cceb8b7a
 md"""*Go ahead and parse!* $(@bind doparse CheckBox())"""
 
+# ╔═╡ d8a810bc-5eb9-459a-96e1-707a5c05d0ad
+#worklist = map(psg -> workid(psg.urn), sept.passages) |> unique
+
+# ╔═╡ 375f690c-b343-42c7-b34f-2e458ac3c4c8
+begin
+	booksurl = "https://raw.githubusercontent.com/neelsmith/compnov/main/corpus/bookslist.txt"
+	tmp = Downloads.download(booksurl)
+	worklist = readlines(tmp)
+	rm(tmp)
+end
+
+# ╔═╡ 94dc3591-32ec-48dd-9eb8-25b0adb921ed
+md"""**Selection to analyze:** *book*: $(@bind bk Select(worklist)) *passage* $(@bind psgref confirm(TextField()))"""
+
+# ╔═╡ 458c10e2-9d72-4763-9d35-9be3bb14fe66
+queryu = CtsUrn("urn:cts:compnov:bible.$(bk).septuagint:$(psgref)")
+
+# ╔═╡ 163eb45b-b8ac-43d4-83f3-302f787cba22
+"""Retrieve a range reference from a corpus"""
+function retrieverange(psgurn, corp)
+	psgcomponent1 = range_begin(psgurn)
+	starter1 = psgcomponent1 * "."
+	
+	starteridx = findfirst(corp.passages) do p
+		workid(p.urn) == bk && ((passagecomponent(p.urn) == psgcomponent1)
+		|| (startswith(passagecomponent(p.urn), starter1))
+	)
+	end
+
+
+	psgcomponent2 = range_end(psgurn)
+	starter2 = psgcomponent2 * "."
+
+	endidx = findlast(corp.passages) do p
+		workid(p.urn) == bk && ((passagecomponent(p.urn) == psgcomponent2)
+		|| (startswith(passagecomponent(p.urn), starter2))
+	)
+	end
+	corp.passages[starteridx:endidx]
+end
+
+# ╔═╡ 656e7977-f601-4db1-8219-e6fe40b60c4f
+"""Retrieve a passage identified by URN from a corpus."""
+function retrievepassage(psgurn, corp)
+	if isrange(psgurn)
+		retrieverange(psgurn, corp)
+
+		
+	else
+		starter = psgref * "."
+		psgcomponent = passagecomponent(psgurn)
+		workid(psgurn) == bk && (psgcomponent == psgref || startswith(psgcomponent, starter))
+	end
+end
+
 # ╔═╡ 1c0aefd6-4b26-4c02-b869-0357d72d0e80
 md"""### Unanalyzed forms above a threshhold"""
 
@@ -51,9 +108,6 @@ md"""*Token (string value)* $(confirm(@bind s TextField(placeholder="θυγατ�
 
 # ╔═╡ bd40d2ca-2f22-4784-888b-0a38c726fe0b
 md"""### Unanalyzed singletons"""
-
-# ╔═╡ c25d1110-4172-41f7-add6-b71122f63dc4
-@bind rangevals confirm(rangewidget())
 
 # ╔═╡ 518991c3-b390-4cfe-8b28-f7cdcd9824c4
 
@@ -139,53 +193,6 @@ end
 
 # ╔═╡ f2793a22-36c7-4a74-9005-41b3622b16c1
 sept = isnothing(corpus) ? nothing : CitableTextCorpus(filter(psg -> versionid(psg.urn) == "septuagint", corpus.passages))
-
-# ╔═╡ d8a810bc-5eb9-459a-96e1-707a5c05d0ad
-worklist = map(psg -> workid(psg.urn), sept.passages) |> unique
-
-# ╔═╡ 94dc3591-32ec-48dd-9eb8-25b0adb921ed
-md"""**Selection to analyze:** *book*: $(@bind bk Select(worklist)) *passage* $(@bind psgref confirm(TextField()))"""
-
-# ╔═╡ 458c10e2-9d72-4763-9d35-9be3bb14fe66
-queryu = CtsUrn("urn:cts:compnov:bible.$(bk).septuagint:$(psgref)")
-
-# ╔═╡ 163eb45b-b8ac-43d4-83f3-302f787cba22
-"""Retrieve a range reference from a corpus"""
-function retrieverange(psgurn, corp)
-	psgcomponent1 = range_begin(psgurn)
-	starter1 = psgcomponent1 * "."
-	
-	starteridx = findfirst(corp.passages) do p
-		workid(p.urn) == bk && ((passagecomponent(p.urn) == psgcomponent1)
-		|| (startswith(passagecomponent(p.urn), starter1))
-	)
-	end
-
-
-	psgcomponent2 = range_end(psgurn)
-	starter2 = psgcomponent2 * "."
-
-	endidx = findlast(corp.passages) do p
-		workid(p.urn) == bk && ((passagecomponent(p.urn) == psgcomponent2)
-		|| (startswith(passagecomponent(p.urn), starter2))
-	)
-	end
-	corp.passages[starteridx:endidx]
-end
-
-# ╔═╡ 656e7977-f601-4db1-8219-e6fe40b60c4f
-"""Retrieve a passage identified by URN from a corpus."""
-function retrievepassage(psgurn, corp)
-	if isrange(psgurn)
-		retrieverange(psgurn, corp)
-
-		
-	else
-		starter = psgref * "."
-		psgcomponent = passagecomponent(psgurn)
-		workid(psgurn) == bk && (psgcomponent == psgref || startswith(psgcomponent, starter))
-	end
-end
 
 # ╔═╡ 6c1f653f-bd0d-4963-8344-1cfc5222ca12
 textselection = isnothing(sept) ? nothing : CitableTextCorpus(retrievepassage(queryu, sept))
@@ -315,17 +322,6 @@ failedsolos = filter(failedstrs) do s
 	else
 		histo[s] == 1
 	end
-end
-
-# ╔═╡ 0957d411-f468-4846-802e-9905c4c33b71
-if isnothing(analyzedlexical)
-	md""
-else
-	failedlist = map(failedsolos[rangevals[:start]:rangevals[:end]]) do s
-		"- " * s	
-	end
-	Markdown.parse(join(failedlist, "\n"))
-	
 end
 
 # ╔═╡ 95cf96fc-0108-4c2a-80a9-38bc9dbf71a1
@@ -460,6 +456,20 @@ function rangewidget()
 	end
 end
 
+# ╔═╡ c25d1110-4172-41f7-add6-b71122f63dc4
+@bind rangevals confirm(rangewidget())
+
+# ╔═╡ 0957d411-f468-4846-802e-9905c4c33b71
+if isnothing(analyzedlexical)
+	md""
+else
+	failedlist = map(failedsolos[rangevals[:start]:rangevals[:end]]) do s
+		"- " * s	
+	end
+	Markdown.parse(join(failedlist, "\n"))
+	
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -468,6 +478,7 @@ CitableBase = "d6f014bd-995c-41bd-9893-703339864534"
 CitableCorpus = "cf5ac11a-93ef-4a1a-97a3-f6af101603b5"
 CitableText = "41e66566-473b-49d4-85b7-da83b66615d8"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 HmtArchive = "1e7b0059-6550-4515-8382-5d3f2046a0a7"
 HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 Kanones = "107500f9-53d4-4696-8485-0747242ad8bc"
@@ -501,7 +512,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.1"
 manifest_format = "2.0"
-project_hash = "5e24fad98ce85f9bcad279133cc1d87f166c062d"
+project_hash = "08309611a18823e59b3c58c4d2ce2c251650d8df"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -1901,7 +1912,7 @@ version = "17.4.0+2"
 """
 
 # ╔═╡ Cell order:
-# ╟─b299ef3e-0d10-11ee-1c90-cdb43d1046f1
+# ╠═b299ef3e-0d10-11ee-1c90-cdb43d1046f1
 # ╟─f78dfd75-0bd3-4e9c-8604-443d0ec92588
 # ╟─9823bc1c-b719-49c3-8f01-8acd219ca67c
 # ╟─38ce0b39-e616-4225-99fc-f1f7cc6f470b
@@ -1913,6 +1924,7 @@ version = "17.4.0+2"
 # ╟─458c10e2-9d72-4763-9d35-9be3bb14fe66
 # ╠═6c1f653f-bd0d-4963-8344-1cfc5222ca12
 # ╟─d8a810bc-5eb9-459a-96e1-707a5c05d0ad
+# ╠═375f690c-b343-42c7-b34f-2e458ac3c4c8
 # ╠═518caceb-d790-4d6b-9678-2197b0d4cbbd
 # ╟─163eb45b-b8ac-43d4-83f3-302f787cba22
 # ╟─656e7977-f601-4db1-8219-e6fe40b60c4f
