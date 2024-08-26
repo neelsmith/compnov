@@ -12,7 +12,7 @@ concepit
 noli
 nolite
 reversus
-praesentem ?
+praesentem
 adducite
 introduxit
 pergens
@@ -26,7 +26,7 @@ tollens
 ascendit
 obtulit
 affer
-occursum ?
+occursum
 evigilans
 egressa
 egressi
@@ -48,8 +48,8 @@ portantes
 acciderat
 delebo
 respexit
-praesens ?
-peccati ?
+praesens
+peccati
 revertar
 revertebatur
 operatus
@@ -77,7 +77,7 @@ ingressa
 festinans
 foderant
 operaretur
-comede ?
+comede
 praepositus
 circumcidit
 audierit
@@ -87,7 +87,7 @@ irruit
 abiisset
 reddere
 accessit
-abundantia ?
+abundantia
 ingressae
 surgens
 dic
@@ -96,7 +96,7 @@ separavit
 remansit
 erexit
 adducam
-tondendas ?
+tondendas
 maledicam
 concidit
 scrutatus
@@ -114,7 +114,6 @@ praeceperam
 assumptis
 accrescens
 condita
-escol ?
 constitue
 emarcuit
 ascendisti
@@ -143,8 +142,7 @@ operuerat
 revertens
 ascendam
 pascebantur
-convallem ?
-praesentibus ?
+praesentibus
 festinavit
 requiram
 suscipe
@@ -167,15 +165,15 @@ ingrederetur
 emamus
 recordabor
 ministrabat
-convalle  ?
 subverteret
 confiteri
 emit
 reversa
-animantium ?
+animantium
 passus
 obiit
-advenerategresso
+egresso
+advenerat
 comederes
 absente
 reducas
