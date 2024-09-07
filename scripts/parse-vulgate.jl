@@ -7,16 +7,17 @@ using StatsBase, OrderedCollections
 repo = pwd()
 tabulaerepo = joinpath(dirname(pwd()), "Tabulae.jl")
 
-function ds(tabulaeroot)
+function ds(tabulaeroot; ortho = "25")
     coreds = Tabulae.coredata(tabulaeroot; medieval = true)
     compshared = joinpath(tabulaeroot, "datasets", "complutensian", "complutensian-shared")
-    comp25 = joinpath(tabulaeroot, "datasets", "complutensian", "complutensian-lat25")
-    vcat(coreds.dirs, [compshared, comp25]) |> Tabulae.Dataset
+    comportho = joinpath(tabulaeroot, "datasets", "complutensian", "complutensian-lat$(ortho)")
+    vcat(coreds.dirs, [compshared, comportho]) |> Tabulae.Dataset
 end
 
-function parser(tabulaeroot) 
-    ds(tabulaeroot)  |> tsp
+function parser(tabulaeroot; orth = "25") 
+    ds(tabulaeroot; ortho = orth)  |> tsp
 end
+
 
 
 function vulgate(reporoot)
