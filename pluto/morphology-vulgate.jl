@@ -27,11 +27,11 @@ begin
 	md"""*Unhide this cell to see the Julia environment.*"""
 end
 
+# ╔═╡ afaafe3e-d826-11ef-1fb4-f59f9502ec1f
+md"""# Analyze morphology of the Vulgate *Genesis*"""
+
 # ╔═╡ 60850b99-1305-408e-9318-94da66ab1f16
 TableOfContents()
-
-# ╔═╡ afaafe3e-d826-11ef-1fb4-f59f9502ec1f
-md"""# Analyze morphology of the Vulgate"""
 
 # ╔═╡ 8e1425b0-b4ff-440a-a690-300c703d336a
 md"""*See top `n` failures*: $(@bind n Slider(1:800; show_value=true, default=50)) *Show list of top n words*: $(@bind seeall CheckBox())"""
@@ -49,16 +49,6 @@ html"""
 # ╔═╡ 6f370e55-a320-47c3-b670-8c0c6df9e700
 md"""> # Mechanics"""
 
-# ╔═╡ 68bdfcaf-cfec-4b4b-bb1e-0b8843fad947
-#=function vulgate(reporoot)
-    textsrc = joinpath(reporoot, "corpus", "compnov.cex")
-    corpus = fromcex(textsrc, CitableTextCorpus, FileReader)
-    filter(corpus.passages) do psg
-        versionid(psg.urn) == "vulgate"
-    end |> CitableTextCorpus
-end
-=#
-
 # ╔═╡ f17fa710-cf44-469e-976a-3f8c91886588
 url = "https://raw.githubusercontent.com/neelsmith/compnov/refs/heads/main/corpus/compnov.cex"
 
@@ -70,11 +60,17 @@ vulgate = filter(corpus.passages) do psg
         versionid(psg.urn) == "vulgate"
     end |> CitableTextCorpus
 
+# ╔═╡ 4477bb11-bf2a-4d39-8fa5-c973fa1c96e2
+genesis = filter(p -> workid(p.urn) == "genesis", vulgate.passages) |> CitableTextCorpus
+
 # ╔═╡ be2e624a-031a-4647-876e-5375df71fe6d
-tkns = tokenize(vulgate, latin25())
+tkns = tokenize(genesis, latin25())
 
 # ╔═╡ 2cce099b-8711-4ab1-a3e4-3fee9363ed58
 lex = filter(t -> t.tokentype isa LexicalToken, tkns)
+
+# ╔═╡ baf870ac-e583-469a-8e37-73476f4a1668
+md"""## Isolate vocabulary"""
 
 # ╔═╡ d91449b5-b2d0-4b2e-91e0-d5df3c3490b9
 countsraw = map(tkn -> tkn.passage.text, lex) |> countmap |> OrderedDict
@@ -82,17 +78,21 @@ countsraw = map(tkn -> tkn.passage.text, lex) |> countmap |> OrderedDict
 # ╔═╡ 1d9ad62f-6f6e-4a6f-982d-38ff03317225
 counts = sort(countsraw; rev=true, byvalue = true)
 
+# ╔═╡ 83c6fc81-664e-42ae-a127-8cba1f547676
+vocab = collect(keys(counts) )
+
+# ╔═╡ c240fcbe-149e-4f45-99b0-02fc6404420a
+lcvocab = filter(w -> islowercase(w[1]), vocab)
+
 # ╔═╡ 8f94ead3-7f73-4547-be55-97a9b76e6aa3
 md"""Summary of corpus:
 
-- Citable passages: **$(length(corpus.passages))**
+- Citable passages: **$(length(genesis.passages))**
 - Number of words: **$(length(tkns))**
 - Unique forms: **$(length(counts))**
+- Unique forms excluding named entities: **$(length(lcvocab))**
 
 """
-
-# ╔═╡ 83c6fc81-664e-42ae-a127-8cba1f547676
-vocab = collect(keys(counts) )
 
 # ╔═╡ 8b06e502-7fba-4264-96e2-7d8113b77f9e
 md"""## Morphology"""
@@ -104,7 +104,7 @@ parserurl = "http://shot.holycross.edu/morphology/vulgate-current.cex"
 parser = tabulaeStringParser(parserurl, UrlReader)
 
 # ╔═╡ 6fe8c46d-04ff-4886-afc3-a15fabdd2f2b
-parses = map(vocab) do tkn
+parses = map(lcvocab) do tkn
 	(token = tkn, parses = parsetoken(tkn, parser))
 end
 
@@ -174,15 +174,15 @@ end
 begin
 	totalwords = length(tkns)
 	cumulativereport = ["| Word form | Cumulative pct |", "| --- | --- |"]
-	cumulative = 0
+	cumulativecount = 0
 	for parse in parses
 		num = counts[parse.token]
 		if isempty(parse.parses)
 			
 			push!(cumulativereport, string("| **", parse.token, "** | *FAILED*(*$(num) occurrences*) |"))
 		else
-			cumulative = cumulative + num
-			currpct = pct(cumulative, totalwords)
+			cumulativecount = cumulativecount + num
+			currpct = pct(cumulativecount, totalwords)
 			push!(cumulativereport, string("| ", parse.token, " | **", currpct, "** |"))
 		end
 		
@@ -989,9 +989,9 @@ version = "17.4.0+2"
 """
 
 # ╔═╡ Cell order:
+# ╟─afaafe3e-d826-11ef-1fb4-f59f9502ec1f
 # ╟─a9da9744-1c21-4e68-a87a-4cc01d6a29ff
 # ╟─60850b99-1305-408e-9318-94da66ab1f16
-# ╟─afaafe3e-d826-11ef-1fb4-f59f9502ec1f
 # ╟─8f94ead3-7f73-4547-be55-97a9b76e6aa3
 # ╟─69d6a18d-9e8c-49f5-b15f-0cbfd9f2a884
 # ╟─8e1425b0-b4ff-440a-a690-300c703d336a
@@ -1000,15 +1000,17 @@ version = "17.4.0+2"
 # ╟─575e371f-b0cc-4af8-bd66-01343fb33b90
 # ╟─086c45fd-c133-4ba8-b55c-c159f610da40
 # ╟─6f370e55-a320-47c3-b670-8c0c6df9e700
-# ╠═68bdfcaf-cfec-4b4b-bb1e-0b8843fad947
-# ╠═f17fa710-cf44-469e-976a-3f8c91886588
+# ╟─f17fa710-cf44-469e-976a-3f8c91886588
 # ╟─1d5fe8ab-899f-4f77-bf7f-1d221a2a28e5
 # ╠═df511936-e42b-4d74-bc99-f168c170c1f5
-# ╟─be2e624a-031a-4647-876e-5375df71fe6d
+# ╠═4477bb11-bf2a-4d39-8fa5-c973fa1c96e2
+# ╠═be2e624a-031a-4647-876e-5375df71fe6d
 # ╟─2cce099b-8711-4ab1-a3e4-3fee9363ed58
-# ╟─d91449b5-b2d0-4b2e-91e0-d5df3c3490b9
+# ╠═baf870ac-e583-469a-8e37-73476f4a1668
+# ╠═d91449b5-b2d0-4b2e-91e0-d5df3c3490b9
 # ╟─1d9ad62f-6f6e-4a6f-982d-38ff03317225
 # ╟─83c6fc81-664e-42ae-a127-8cba1f547676
+# ╟─c240fcbe-149e-4f45-99b0-02fc6404420a
 # ╟─8b06e502-7fba-4264-96e2-7d8113b77f9e
 # ╟─6641d402-d785-4b5a-b971-4d76d9151647
 # ╠═50501afe-8221-47d0-b8fe-28e8b84ee141

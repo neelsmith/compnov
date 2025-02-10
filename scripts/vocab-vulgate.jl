@@ -102,7 +102,21 @@ writefailcounts(fails, counts)
 writefailcounts(allfails, counts; fname = "fails-all.cex")
 
 
+genesislextkns = filter(t -> workid(t.passage.urn) == "genesis", lex)
+gencountsraw = map(tkn -> tkn.passage.text, genesislextkns) |> countmap |> OrderedDict
+gencounts = sort(gencountsraw, byvalue = true, rev = true)
+genlclist = filter(w -> islowercase(w[1]), collect(keys(gencounts)))
 
+@info("Genesis, total number of lexical tokens: $(length(genesislextkns))")
+@info("Genesis, distinct tokens: $(length(genlclist))")
+
+
+@time genfails = collectfails(parser, genlclist)
+writefailcounts(genfails, gencounts; fname = "fails-genesis.cex")
+
+
+
+### PERSONAL NAMES:
 
 pnfreqs = map(pns) do pn
     string(pn, "|", counts[pn])
