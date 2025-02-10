@@ -49,17 +49,29 @@ html"""
 # ╔═╡ 6f370e55-a320-47c3-b670-8c0c6df9e700
 md"""> # Mechanics"""
 
+# ╔═╡ 68bdfcaf-cfec-4b4b-bb1e-0b8843fad947
+#=function vulgate(reporoot)
+    textsrc = joinpath(reporoot, "corpus", "compnov.cex")
+    corpus = fromcex(textsrc, CitableTextCorpus, FileReader)
+    filter(corpus.passages) do psg
+        versionid(psg.urn) == "vulgate"
+    end |> CitableTextCorpus
+end
+=#
+
 # ╔═╡ f17fa710-cf44-469e-976a-3f8c91886588
-url = "https://raw.githubusercontent.com/neelsmith/confessions/refs/heads/main/src/confessions.cex"
+url = "https://raw.githubusercontent.com/neelsmith/compnov/refs/heads/main/corpus/compnov.cex"
 
 # ╔═╡ 1d5fe8ab-899f-4f77-bf7f-1d221a2a28e5
 corpus = fromcex(url, CitableTextCorpus, UrlReader)
 
 # ╔═╡ df511936-e42b-4d74-bc99-f168c170c1f5
-
+vulgate = filter(corpus.passages) do psg
+        versionid(psg.urn) == "vulgate"
+    end |> CitableTextCorpus
 
 # ╔═╡ be2e624a-031a-4647-876e-5375df71fe6d
-tkns = tokenize(corpus, latin24())
+tkns = tokenize(vulgate, latin25())
 
 # ╔═╡ 2cce099b-8711-4ab1-a3e4-3fee9363ed58
 lex = filter(t -> t.tokentype isa LexicalToken, tkns)
@@ -86,7 +98,7 @@ vocab = collect(keys(counts) )
 md"""## Morphology"""
 
 # ╔═╡ 6641d402-d785-4b5a-b971-4d76d9151647
-parserurl = "http://shot.holycross.edu/morphology/confessions-current.cex"
+parserurl = "http://shot.holycross.edu/morphology/vulgate-current.cex"
 
 # ╔═╡ 50501afe-8221-47d0-b8fe-28e8b84ee141
 parser = tabulaeStringParser(parserurl, UrlReader)
@@ -981,13 +993,14 @@ version = "17.4.0+2"
 # ╟─60850b99-1305-408e-9318-94da66ab1f16
 # ╟─afaafe3e-d826-11ef-1fb4-f59f9502ec1f
 # ╟─8f94ead3-7f73-4547-be55-97a9b76e6aa3
-# ╠═69d6a18d-9e8c-49f5-b15f-0cbfd9f2a884
+# ╟─69d6a18d-9e8c-49f5-b15f-0cbfd9f2a884
 # ╟─8e1425b0-b4ff-440a-a690-300c703d336a
 # ╟─b6b58afa-1f60-4eeb-8e0b-f19ec4b7cc25
 # ╟─dceec491-82c3-4f4b-b3bb-adf90310322c
 # ╟─575e371f-b0cc-4af8-bd66-01343fb33b90
 # ╟─086c45fd-c133-4ba8-b55c-c159f610da40
 # ╟─6f370e55-a320-47c3-b670-8c0c6df9e700
+# ╠═68bdfcaf-cfec-4b4b-bb1e-0b8843fad947
 # ╠═f17fa710-cf44-469e-976a-3f8c91886588
 # ╟─1d5fe8ab-899f-4f77-bf7f-1d221a2a28e5
 # ╠═df511936-e42b-4d74-bc99-f168c170c1f5
