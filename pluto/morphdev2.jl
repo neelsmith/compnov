@@ -1,17 +1,19 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
+    #! format: off
     quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
+    #! format: on
 end
 
 # ╔═╡ b299ef3e-0d10-11ee-1c90-cdb43d1046f1
@@ -106,8 +108,23 @@ md""" ### See passages for form"""
 # ╔═╡ af175591-b8e8-48c3-a6d5-78b83d7756c4
 md"""*Token (string value)* $(confirm(@bind s TextField(placeholder="θυγατέρα")))"""
 
+# ╔═╡ 8ffbee45-878f-4500-9563-52ff385344b0
+if isempty(s) 
+	md""
+else
+	psglist = passages(nfkc(s))
+	psgsmd = ["$(length(psglist)) occurrences of $(s)",""]
+	for p in psglist
+		push!(psgsmd, string("- ", p))
+	end
+	join(psgsmd, "\n") |> Markdown.parse
+end
+
 # ╔═╡ bd40d2ca-2f22-4784-888b-0a38c726fe0b
 md"""### Unanalyzed singletons"""
+
+# ╔═╡ c25d1110-4172-41f7-add6-b71122f63dc4
+@bind rangevals confirm(rangewidget())
 
 # ╔═╡ 518991c3-b390-4cfe-8b28-f7cdcd9824c4
 
@@ -126,22 +143,6 @@ md"""> Counting"""
 
 # ╔═╡ f7c3c9a3-e602-4877-94ec-5e6842348f2d
 md"> Parser"
-
-# ╔═╡ b12a3713-f896-41bc-bc36-96db576d8c95
-"""Construct a `DataFrameParser` from a local `.csv` file."""
-function fromfile(fdata)
-	if isnothing(fdata)
-		nothing
-	else
-		f = tempname()
-		open(f, "w") do io
-			write(f, fdata["data"])
-		end
-		dfparser = dfParser(f)
-		rm(f)
-		dfparser
-	end
-end
 
 # ╔═╡ e5433a82-4221-4b73-8a58-69567ad40713
 # ╠═╡ show_logs = false
@@ -162,11 +163,35 @@ else
 	join(parsedisplay,"\n") |> Markdown.parse
 end
 
+# ╔═╡ b12a3713-f896-41bc-bc36-96db576d8c95
+"""Construct a `DataFrameParser` from a local `.csv` file."""
+function fromfile(fdata)
+	if isnothing(fdata)
+		nothing
+	else
+		f = tempname()
+		open(f, "w") do io
+			write(f, fdata["data"])
+		end
+		dfparser = dfParser(f)
+		rm(f)
+		dfparser
+	end
+end
+
 # ╔═╡ aed560de-ffe3-4b26-8b66-41e0cb54beea
 md"> Analyzed corpus"
 
 # ╔═╡ fd3dd69c-91b2-4261-a9d9-59dcea113ef8
 ortho = literaryGreek()
+
+# ╔═╡ fa23a2e4-91e3-4d77-8a7a-45e54a7dd720
+"Find passages where token with string value `s` occurs."
+function passages(s)
+	filter(analyzedlexical.analyses) do at
+		at.ctoken.passage.text == nfkc(s)
+	end
+end
 
 # ╔═╡ e455604c-4bf4-4ad7-9201-1ecb69c2f054
 md"> Frequencies"
@@ -280,26 +305,6 @@ failed = isnothing(analyzedlexical) ? [] : filter(at -> isempty(at.analyses), an
 # ╔═╡ 8806f333-9486-4a81-be60-8a94a49862c1
 failedstrs = PolytonicGreek.sortWords(map(psg -> psg.ctoken.passage.text, failed), ortho)
 
-# ╔═╡ fa23a2e4-91e3-4d77-8a7a-45e54a7dd720
-"Find passages where token with string value `s` occurs."
-function passages(s)
-	filter(analyzedlexical.analyses) do at
-		at.ctoken.passage.text == nfkc(s)
-	end
-end
-
-# ╔═╡ 8ffbee45-878f-4500-9563-52ff385344b0
-if isempty(s) 
-	md""
-else
-	psglist = passages(nfkc(s))
-	psgsmd = ["$(length(psglist)) occurrences of $(s)",""]
-	for p in psglist
-		push!(psgsmd, string("- ", p))
-	end
-	join(psgsmd, "\n") |> Markdown.parse
-end
-
 # ╔═╡ 0c3228ec-3023-4fa6-b0d8-7e11fb077b8a
 vocab = isnothing(tcorpus) ? nothing : map(psg -> lowercase(psg.text), tcorpus) |> unique
 
@@ -322,6 +327,17 @@ failedsolos = filter(failedstrs) do s
 	else
 		histo[s] == 1
 	end
+end
+
+# ╔═╡ 0957d411-f468-4846-802e-9905c4c33b71
+if isnothing(analyzedlexical)
+	md""
+else
+	failedlist = map(failedsolos[rangevals[:start]:rangevals[:end]]) do s
+		"- " * s	
+	end
+	Markdown.parse(join(failedlist, "\n"))
+	
 end
 
 # ╔═╡ 95cf96fc-0108-4c2a-80a9-38bc9dbf71a1
@@ -454,20 +470,6 @@ function rangewidget()
 	
 		""")
 	end
-end
-
-# ╔═╡ c25d1110-4172-41f7-add6-b71122f63dc4
-@bind rangevals confirm(rangewidget())
-
-# ╔═╡ 0957d411-f468-4846-802e-9905c4c33b71
-if isnothing(analyzedlexical)
-	md""
-else
-	failedlist = map(failedsolos[rangevals[:start]:rangevals[:end]]) do s
-		"- " * s	
-	end
-	Markdown.parse(join(failedlist, "\n"))
-	
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
