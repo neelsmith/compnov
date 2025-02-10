@@ -98,7 +98,7 @@ parser = getparser(true)
 writefailcounts(fails, counts)
 
 
-@time allfails = collectfails(parser, wordlist)
+@time allfails = collectfails(parser, lclist)
 writefailcounts(allfails, counts; fname = "fails-all.cex")
 
 
